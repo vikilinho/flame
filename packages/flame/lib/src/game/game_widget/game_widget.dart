@@ -8,6 +8,8 @@ import 'package:flame/src/game/mixins/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../game.dart';
+
 typedef GameLoadingWidgetBuilder = Widget Function(
   BuildContext,
 );
@@ -138,8 +140,7 @@ class GameWidget<T extends Game> extends StatefulWidget {
   /// ```
   const GameWidget({
     Key? key,
-    this.game,
-    this.gameBuilder,
+    required T this.game,
     this.textDirection,
     this.loadingBuilder,
     this.errorBuilder,
@@ -149,21 +150,73 @@ class GameWidget<T extends Game> extends StatefulWidget {
     this.focusNode,
     this.autofocus = true,
     this.mouseCursor,
-  })  : assert(
-          game != null || gameBuilder != null,
-          'Neither game or gameBuilder were informed.',
-        ),
-        assert(
-          !(game != null && gameBuilder != null),
-          'Both "game" and "gameBuilder" informed, only one can be used.',
-        ),
+  })  : gameBuilder = null,
         super(key: key);
+
+  const factory GameWidget.controlled({
+    Key? key,
+    required GameBuilder<T> gameBuilder,
+    TextDirection? textDirection,
+    GameLoadingWidgetBuilder? loadingBuilder,
+    GameErrorWidgetBuilder? errorBuilder,
+    WidgetBuilder? backgroundBuilder,
+    Map<String, OverlayWidgetBuilder<T>>? overlayBuilderMap,
+    List<String>? initialActiveOverlays,
+    FocusNode? focusNode,
+    bool autofocus,
+    MouseCursor? mouseCursor,
+  }) = _ControlledGameWidget._;
+
+  const GameWidget._({
+    Key? key,
+    required GameBuilder<T> this.gameBuilder,
+    this.textDirection,
+    this.loadingBuilder,
+    this.errorBuilder,
+    this.backgroundBuilder,
+    this.overlayBuilderMap,
+    this.initialActiveOverlays,
+    this.focusNode,
+    this.autofocus = true,
+    this.mouseCursor,
+  })  : game = null,
+        super(key: key);
+
+  bool get _internallyControlled => game != null;
 
   /// Renders a [game] in a flutter widget tree alongside widgets overlays.
   ///
   /// To use overlays, the game subclass has to be mixed with HasWidgetsOverlay.
   @override
   _GameWidgetState<T> createState() => _GameWidgetState<T>();
+}
+
+class _ControlledGameWidget<T extends Game> extends GameWidget<T> {
+  const _ControlledGameWidget._({
+    Key? key,
+    required GameBuilder<T> gameBuilder,
+    TextDirection? textDirection,
+    GameLoadingWidgetBuilder? loadingBuilder,
+    GameErrorWidgetBuilder? errorBuilder,
+    WidgetBuilder? backgroundBuilder,
+    Map<String, OverlayWidgetBuilder<T>>? overlayBuilderMap,
+    List<String>? initialActiveOverlays,
+    FocusNode? focusNode,
+    bool autofocus = true,
+    MouseCursor? mouseCursor,
+  }) : super._(
+          key: key,
+          gameBuilder: gameBuilder,
+          textDirection: textDirection,
+          loadingBuilder: loadingBuilder,
+          errorBuilder: errorBuilder,
+          backgroundBuilder: backgroundBuilder,
+          overlayBuilderMap: overlayBuilderMap,
+          initialActiveOverlays: initialActiveOverlays,
+          focusNode: focusNode,
+          autofocus: autofocus,
+          mouseCursor: mouseCursor,
+        );
 }
 
 class _GameWidgetState<T extends Game> extends State<GameWidget<T>> {
@@ -226,8 +279,8 @@ class _GameWidgetState<T extends Game> extends State<GameWidget<T>> {
   @override
   void didUpdateWidget(GameWidget<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.game != widget.game ||
-        oldWidget.gameBuilder != widget.gameBuilder) {
+
+    if (widget._internallyControlled && oldWidget.game != widget.game) {
       removeOverlaysListener(_currentGame);
 
       // Reset the overlays
@@ -269,7 +322,7 @@ class _GameWidgetState<T extends Game> extends State<GameWidget<T>> {
     });
   }
 
-  //#region Widget overlay methods
+//#region Widget overlay methods
 
   void addOverlaysListener() {
     _currentGame.overlays.addListener(onChangeActiveOverlays);
@@ -296,7 +349,7 @@ class _GameWidgetState<T extends Game> extends State<GameWidget<T>> {
     });
   }
 
-  //#endregion
+//#endregion
 
   KeyEventResult _handleKeyEvent(FocusNode focusNode, RawKeyEvent event) {
     final game = _currentGame;
