@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/geometry.dart';
@@ -119,6 +120,13 @@ class CircleComponent extends ShapeComponent implements SizeProvider {
         .where((t) => t >= 0 && t <= 1)
         .map((t) => line.from.clone()..addScaled(_delta21, t))
         .toList();
+  }
+
+  RaycastResult<ShapeHitbox>? rayIntersection(
+    Ray2 ray, {
+    RaycastResult<ShapeHitbox>? out,
+  }) {
+    throw UnimplementedError();
   }
 
   static final Vector2 _delta21 = Vector2.zero();
